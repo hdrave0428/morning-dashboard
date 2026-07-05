@@ -1,0 +1,1881 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>My Daily Dashboard</title>
+
+<style>
+  /* ======================================================
+     CSS VARIABLES (THEME)
+     Change these values to quickly re-theme the whole page.
+     ====================================================== */
+  :root {
+    --bg-color: #0f1117;          /* page background */
+    --card-bg: #181b24;           /* card background */
+    --card-bg-hover: #1e2230;     /* slightly lighter for hover states */
+    --border-color: #262b38;      /* subtle border on cards */
+    --text-primary: #e8eaf0;      /* main text */
+    --text-secondary: #9aa0b4;    /* dimmer text (labels, hints) */
+    --accent-blue: #4d8dff;       /* primary accent */
+    --accent-blue-dim: #2c4f8f;   /* darker accent for hover/borders */
+    --accent-blue-glow: rgba(77, 141, 255, 0.15);
+    --danger: #ff6b6b;            /* delete buttons */
+    --success: #4ddb8a;           /* completed checkmarks */
+    --radius-lg: 16px;
+    --radius-md: 10px;
+    --radius-sm: 6px;
+    --shadow-card: 0 4px 14px rgba(0, 0, 0, 0.35);
+  }
+
+  /* ======================================================
+     BASE / RESET
+     ====================================================== */
+  * {
+    box-sizing: border-box;
+  }
+
+  body {
+    margin: 0;
+    padding: 0;
+    background-color: var(--bg-color);
+    color: var(--text-primary);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    min-height: 100vh;
+  }
+
+  h1, h2, h3 {
+    margin: 0 0 4px 0;
+  }
+
+  /* ======================================================
+     LAYOUT GRID
+     The dashboard uses a responsive grid so cards rearrange
+     automatically on smaller screens / windows.
+     ====================================================== */
+  .dashboard-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 24px;
+  }
+
+  .widget-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
+    margin-top: 20px;
+  }
+
+  /* On narrow screens, stack everything into a single column */
+  @media (max-width: 800px) {
+    .widget-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  /* ======================================================
+     CARD STYLE (shared by every widget)
+     ====================================================== */
+  .card {
+    background-color: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    padding: 20px;
+    box-shadow: var(--shadow-card);
+  }
+
+  .card-title {
+    font-size: 1.05rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 14px;
+  }
+
+  /* ======================================================
+     HEADER WIDGET
+     ====================================================== */
+  /* ======================================================
+     HEADER WIDGET
+     This bar is OUTSIDE .dashboard-container (see HTML below)
+     so it stretches edge-to-edge across the full browser width,
+     instead of being boxed in like the widget cards.
+     ====================================================== */
+  .header-bar {
+    width: 100%;
+    background-color: var(--card-bg);
+    border-bottom: 1px solid var(--border-color);
+    box-shadow: var(--shadow-card);
+    padding: 20px 32px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .greeting-text {
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: var(--text-primary);
+  }
+
+  .date-text {
+    color: var(--text-secondary);
+    font-size: 0.95rem;
+    margin-top: 4px;
+  }
+
+  .time-display {
+    font-size: 2.2rem;
+    font-weight: 700;
+    color: var(--accent-blue);
+    letter-spacing: 1px;
+    font-family: "Courier New", monospace;
+  }
+
+  /* ======================================================
+     TASK LIST WIDGET
+     ====================================================== */
+  .task-input-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 14px;
+  }
+
+  .task-input-row input[type="text"] {
+    flex: 1;
+    padding: 10px 12px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border-color);
+    background-color: var(--bg-color);
+    color: var(--text-primary);
+    font-size: 0.95rem;
+  }
+
+  .task-input-row input[type="text"]:focus {
+    outline: none;
+    border-color: var(--accent-blue);
+    box-shadow: 0 0 0 3px var(--accent-blue-glow);
+  }
+
+  .btn {
+    padding: 10px 16px;
+    border-radius: var(--radius-sm);
+    border: none;
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: 600;
+    transition: background-color 0.15s ease, transform 0.05s ease;
+  }
+
+  .btn:active {
+    transform: scale(0.97);
+  }
+
+  .btn-primary {
+    background-color: var(--accent-blue);
+    color: #ffffff;
+  }
+
+  .btn-primary:hover {
+    background-color: #3d7ae0;
+  }
+
+  .task-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    max-height: 340px;
+    overflow-y: auto;
+  }
+
+  .task-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 8px;
+    border-radius: var(--radius-sm);
+    border-bottom: 1px solid var(--border-color);
+  }
+
+  .task-item:hover {
+    background-color: var(--card-bg-hover);
+  }
+
+  .task-item input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    accent-color: var(--accent-blue);
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+
+  .task-text {
+    flex: 1;
+    word-break: break-word;
+    font-size: 0.95rem;
+  }
+
+  /* Completed tasks: dimmed + strikethrough, sorted to the bottom in JS */
+  .task-item.completed .task-text {
+    text-decoration: line-through;
+    color: var(--text-secondary);
+  }
+
+  .task-edit-input {
+    flex: 1;
+    padding: 6px 8px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--accent-blue);
+    background-color: var(--bg-color);
+    color: var(--text-primary);
+    font-size: 0.95rem;
+  }
+
+  .task-action-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 1rem;
+    padding: 4px 6px;
+    border-radius: var(--radius-sm);
+    color: var(--text-secondary);
+    flex-shrink: 0;
+  }
+
+  .task-action-btn:hover {
+    color: var(--accent-blue);
+    background-color: var(--accent-blue-glow);
+  }
+
+  .task-action-btn.delete-btn:hover {
+    color: var(--danger);
+    background-color: rgba(255, 107, 107, 0.12);
+  }
+
+  .empty-state {
+    color: var(--text-secondary);
+    text-align: center;
+    padding: 24px 0;
+    font-size: 0.9rem;
+  }
+
+  /* ======================================================
+     JOURNAL WIDGET
+     ====================================================== */
+  .journal-date {
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+    margin-bottom: 10px;
+  }
+
+  .journal-textarea {
+    width: 100%;
+    min-height: 260px;
+    resize: vertical;
+    padding: 14px;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-color);
+    background-color: var(--bg-color);
+    color: var(--text-primary);
+    font-size: 0.95rem;
+    line-height: 1.5;
+    font-family: inherit;
+  }
+
+  .journal-textarea:focus {
+    outline: none;
+    border-color: var(--accent-blue);
+    box-shadow: 0 0 0 3px var(--accent-blue-glow);
+  }
+
+  .save-indicator {
+    font-size: 0.8rem;
+    color: var(--success);
+    margin-top: 8px;
+    height: 16px; /* reserve space so layout doesn't jump */
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+
+  .save-indicator.visible {
+    opacity: 1;
+  }
+
+  /* ======================================================
+     WEATHER WIDGET
+     ====================================================== */
+  .weather-body {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 14px;
+  }
+
+  .weather-temp {
+    font-size: 2.4rem;
+    font-weight: 700;
+    color: var(--accent-blue);
+  }
+
+  .weather-detail {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+  }
+
+  .weather-status {
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+    margin-top: 10px;
+  }
+
+  /* Weather widget spans both grid columns since it now holds
+     hourly + daily forecast rows and needs the extra width. */
+  .weather-card-full {
+    grid-column: 1 / -1;
+  }
+
+  .weather-section-label {
+    color: var(--text-secondary);
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-top: 18px;
+    margin-bottom: 10px;
+    border-top: 1px solid var(--border-color);
+    padding-top: 14px;
+  }
+
+  /* Hourly strip: horizontally scrollable row of small tiles,
+     one per remaining hour of today. */
+  .hourly-forecast-strip {
+    display: flex;
+    gap: 10px;
+    overflow-x: auto;
+    padding-bottom: 6px;
+  }
+
+  .hourly-forecast-tile {
+    flex: 0 0 auto;
+    min-width: 64px;
+    background-color: var(--bg-color);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    padding: 10px 8px;
+    text-align: center;
+  }
+
+  .hourly-forecast-tile .hour-label {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    margin-bottom: 6px;
+  }
+
+  .hourly-forecast-tile .hour-icon {
+    font-size: 1.2rem;
+    margin-bottom: 6px;
+  }
+
+  .hourly-forecast-tile .hour-temp {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: var(--text-primary);
+  }
+
+  /* Daily forecast: responsive row of 6 day tiles. */
+  .daily-forecast-row {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 10px;
+  }
+
+  @media (max-width: 700px) {
+    .daily-forecast-row {
+      grid-template-columns: repeat(3, 1fr);
+    }
+  }
+
+  @media (max-width: 420px) {
+    .daily-forecast-row {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+
+  .daily-forecast-tile {
+    background-color: var(--bg-color);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    padding: 12px 6px;
+    text-align: center;
+  }
+
+  .daily-forecast-tile .day-label {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 6px;
+  }
+
+  .daily-forecast-tile .day-icon {
+    font-size: 1.3rem;
+    margin-bottom: 6px;
+  }
+
+  .daily-forecast-tile .day-high {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: var(--accent-blue);
+  }
+
+  .daily-forecast-tile .day-low {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+  }
+
+  /* ======================================================
+     MOOD / ENERGY LOG WIDGET
+     ====================================================== */
+  .mood-options-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+
+  .mood-option-btn {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 4px;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-color);
+    background-color: var(--bg-color);
+    color: var(--text-secondary);
+    cursor: pointer;
+    font-size: 0.75rem;
+    transition: border-color 0.15s ease, color 0.15s ease, background-color 0.15s ease;
+  }
+
+  .mood-option-btn .mood-emoji {
+    font-size: 1.4rem;
+    line-height: 1;
+  }
+
+  .mood-option-btn:hover {
+    border-color: var(--accent-blue-dim);
+    color: var(--text-primary);
+  }
+
+  /* The option matching today's logged mood stays visibly "selected" */
+  .mood-option-btn.selected {
+    border-color: var(--accent-blue);
+    background-color: var(--accent-blue-glow);
+    color: var(--text-primary);
+  }
+
+  .mood-chart-wrapper {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 8px;
+    height: 110px;
+    padding-top: 10px;
+    border-top: 1px solid var(--border-color);
+  }
+
+  .mood-chart-day {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-end;
+    height: 100%;
+    gap: 6px;
+  }
+
+  .mood-chart-bar {
+    width: 60%;
+    min-height: 4px; /* always show a sliver so empty days are still visible */
+    border-radius: 4px 4px 2px 2px;
+    background-color: var(--accent-blue-dim);
+    transition: height 0.25s ease, background-color 0.25s ease;
+  }
+
+  /* Today's bar (and any logged bar) gets the brighter accent color */
+  .mood-chart-bar.logged {
+    background-color: var(--accent-blue);
+  }
+
+  .mood-chart-label {
+    font-size: 0.7rem;
+    color: var(--text-secondary);
+  }
+
+  .mood-chart-label.is-today {
+    color: var(--accent-blue);
+    font-weight: 700;
+  }
+
+  /* ======================================================
+     STOCK TICKER WIDGET
+     ====================================================== */
+  .stock-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+  }
+
+  @media (max-width: 480px) {
+    .stock-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  .stock-tile {
+    background-color: var(--bg-color);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    padding: 14px;
+    text-align: center;
+  }
+
+  .stock-symbol {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    letter-spacing: 0.5px;
+  }
+
+  .stock-name {
+    font-size: 0.7rem;
+    color: var(--text-secondary);
+    margin-bottom: 8px;
+  }
+
+  .stock-price {
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: var(--accent-blue);
+  }
+
+  .stock-change {
+    font-size: 0.8rem;
+    margin-top: 4px;
+  }
+
+  .stock-change.positive {
+    color: var(--success);
+  }
+
+  .stock-change.negative {
+    color: var(--danger);
+  }
+
+  .stock-session-tag {
+    display: inline-block;
+    margin-top: 8px;
+    font-size: 0.65rem;
+    padding: 2px 8px;
+    border-radius: 20px;
+    background-color: var(--accent-blue-glow);
+    color: var(--accent-blue);
+  }
+
+  /* ======================================================
+     POMODORO / FOCUS TIMER WIDGET
+     ====================================================== */
+  .pomodoro-display {
+    text-align: center;
+    padding: 10px 0 6px;
+  }
+
+  .pomodoro-time {
+    font-size: 3rem;
+    font-weight: 700;
+    font-family: "Courier New", monospace;
+    color: var(--accent-blue);
+    letter-spacing: 2px;
+  }
+
+  .pomodoro-mode-label {
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+    margin-top: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .pomodoro-controls {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin-top: 16px;
+  }
+
+  .pomodoro-controls .btn-secondary {
+    background-color: var(--bg-color);
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+  }
+
+  .pomodoro-controls .btn-secondary:hover {
+    border-color: var(--accent-blue);
+    color: var(--accent-blue);
+  }
+
+  .pomodoro-session-count {
+    text-align: center;
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+    margin-top: 14px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border-color);
+  }
+
+  .pomodoro-session-count strong {
+    color: var(--text-primary);
+  }
+
+  /* ======================================================
+     DAILY QUOTE WIDGET
+     ====================================================== */
+  .quote-text {
+    font-size: 1.1rem;
+    line-height: 1.5;
+    color: var(--text-primary);
+    font-style: italic;
+  }
+
+  .quote-attribution {
+    margin-top: 12px;
+    color: var(--accent-blue);
+    font-weight: 600;
+    font-size: 0.9rem;
+    text-align: right;
+  }
+
+  /* ======================================================
+     EXPORT WIDGET
+     ====================================================== */
+  .export-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .export-description {
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+    max-width: 380px;
+  }
+
+  /* Scrollbar styling so it matches the dark theme */
+  ::-webkit-scrollbar {
+    width: 8px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--border-color);
+    border-radius: 8px;
+  }
+</style>
+</head>
+
+<body>
+
+  <!-- ======================================================
+       HEADER BAR (spans the full width of the page)
+       Shows current date, current time, and a greeting that
+       changes based on the time of day. Updated every second
+       by updateHeader() in the JS section below.
+       ====================================================== -->
+  <div class="header-bar">
+    <div>
+      <div class="greeting-text" id="greetingText">Hello!</div>
+      <div class="date-text" id="currentDateText">--</div>
+    </div>
+    <div class="time-display" id="currentTimeText">--:--:--</div>
+  </div>
+
+  <div class="dashboard-container">
+
+    <!-- Grid holding the rest of the widgets -->
+    <div class="widget-grid">
+
+      <!-- ======================================================
+           DAILY TASK LIST WIDGET
+           Lets the user add, edit, complete, and delete tasks.
+           Completed tasks automatically sink to the bottom of
+           the list. All tasks are saved to localStorage.
+           ====================================================== -->
+      <div class="card">
+        <div class="card-title">✅ Daily Tasks</div>
+
+        <div class="task-input-row">
+          <input type="text" id="newTaskInput" placeholder="Add a new task and press Enter...">
+          <button class="btn btn-primary" id="addTaskButton">Add</button>
+        </div>
+
+        <ul class="task-list" id="taskListElement">
+          <!-- Task <li> elements are injected here by renderTasks() -->
+        </ul>
+      </div>
+
+      <!-- ======================================================
+           DAILY JOURNAL WIDGET
+           A large free-text area that auto-saves as the user
+           types (with a short debounce) and is keyed to today's
+           date so each day gets its own entry.
+           ====================================================== -->
+      <div class="card">
+        <div class="card-title">📓 Daily Journal</div>
+        <div class="journal-date" id="journalDateText">--</div>
+        <textarea
+          class="journal-textarea"
+          id="journalTextarea"
+          placeholder="Write down today's thoughts, plans, or reflections..."></textarea>
+        <div class="save-indicator" id="journalSaveIndicator">Saved ✓</div>
+      </div>
+
+      <!-- ======================================================
+           WEATHER WIDGET (spans full width — grid-column set in CSS)
+           Uses the free Open-Meteo API (no API key required).
+           Shows current conditions, an hourly forecast for the
+           rest of today, and a daily forecast for the next 6 days.
+           See the JS "WEATHER WIDGET" section for a detailed
+           explanation of file:// / CORS behavior.
+           ====================================================== -->
+      <div class="card weather-card-full">
+        <div class="card-title">🌤️ Weather</div>
+
+        <!-- Current conditions -->
+        <div class="weather-body">
+          <div>
+            <div class="weather-temp" id="weatherTempText">--°</div>
+            <div class="weather-detail" id="weatherDetailText">Fetching weather...</div>
+          </div>
+          <div class="weather-detail" id="weatherLocationText">Locating you...</div>
+        </div>
+        <div class="weather-status" id="weatherStatusText"></div>
+
+        <!-- Hourly forecast for the remainder of today -->
+        <div class="weather-section-label">Today, hour by hour</div>
+        <div class="hourly-forecast-strip" id="hourlyForecastStrip">
+          <!-- Hourly tiles are injected here by renderHourlyForecast() -->
+        </div>
+
+        <!-- Daily forecast for the next 6 days -->
+        <div class="weather-section-label">Next 6 days</div>
+        <div class="daily-forecast-row" id="dailyForecastRow">
+          <!-- Daily tiles are injected here by renderDailyForecast() -->
+        </div>
+      </div>
+
+      <!-- ======================================================
+           STOCK TICKER WIDGET
+           Live prices for NASDAQ Composite, AAPL, and FISV from
+           Yahoo Finance's public chart endpoint. Shows the most
+           recent traded price even outside regular market hours
+           (pre-market / after-hours), with a tag indicating which
+           session that price came from. See the JS "STOCK TICKER"
+           section for notes on reliability over file://.
+           ====================================================== -->
+      <div class="card">
+        <div class="card-title">📈 Markets</div>
+        <div class="stock-grid" id="stockGridElement">
+          <!-- Stock tiles are injected here by renderStockTiles() -->
+        </div>
+      </div>
+
+      <!-- ======================================================
+           MOOD / ENERGY LOG WIDGET
+           Tap one option to log today's energy/mood. Stores one
+           value per day and renders a 7-day bar chart below.
+           ====================================================== -->
+      <div class="card">
+        <div class="card-title">⚡ Energy / Mood Log</div>
+
+        <div class="mood-options-row" id="moodOptionsRow">
+          <!-- Option buttons are injected here by renderMoodOptions() -->
+        </div>
+
+        <div class="mood-chart-wrapper" id="moodChartWrapper">
+          <!-- Chart bars are injected here by renderMoodChart() -->
+        </div>
+      </div>
+
+      <!-- ======================================================
+           POMODORO / FOCUS TIMER WIDGET
+           A simple 25-minute focus / 5-minute break timer.
+           Tracks how many focus sessions you complete each day.
+           ====================================================== -->
+      <div class="card">
+        <div class="card-title">⏱️ Focus Timer</div>
+
+        <div class="pomodoro-display">
+          <div class="pomodoro-time" id="pomodoroTimeText">25:00</div>
+          <div class="pomodoro-mode-label" id="pomodoroModeLabel">Focus session</div>
+        </div>
+
+        <div class="pomodoro-controls">
+          <button class="btn btn-primary" id="pomodoroStartPauseButton">Start</button>
+          <button class="btn btn-secondary" id="pomodoroResetButton">Reset</button>
+        </div>
+
+        <div class="pomodoro-session-count">
+          Focus sessions completed today: <strong id="pomodoroSessionCountText">0</strong>
+        </div>
+      </div>
+
+      <!-- ======================================================
+           DAILY QUOTE WIDGET
+           Shows one motivational quote from a well-known athlete,
+           picked deterministically from today's date so everyone
+           sees the same quote all day, and it changes tomorrow.
+           ====================================================== -->
+      <div class="card">
+        <div class="card-title">🏆 Quote of the Day</div>
+        <div class="quote-text" id="quoteTextElement">Loading today's quote...</div>
+        <div class="quote-attribution" id="quoteAttributionElement"></div>
+      </div>
+
+      <!-- ======================================================
+           EXPORT DATA WIDGET
+           Lets the user back up everything stored in
+           localStorage as a single downloadable JSON file.
+           ====================================================== -->
+      <div class="card export-card">
+        <div>
+          <div class="card-title">💾 Backup Your Data</div>
+          <div class="export-description">
+            Download all your tasks, journal entries, and settings as a JSON file you can save or re-import later.
+          </div>
+        </div>
+        <button class="btn btn-primary" id="exportDataButton">Export Data</button>
+      </div>
+
+    </div> <!-- end widget-grid -->
+  </div> <!-- end dashboard-container -->
+
+
+<script>
+  /* ============================================================
+     ============================================================
+     JAVASCRIPT
+     Organized into clearly labeled sections. Each section is
+     self-contained so you can find and modify a feature without
+     reading through the whole file.
+     ============================================================
+     ============================================================ */
+
+
+  /* ============================================================
+     SECTION 1: HEADER (date, time, greeting)
+     ============================================================ */
+
+  // Grabs the header elements once so we don't re-query the DOM every second.
+  const greetingTextElement = document.getElementById('greetingText');
+  const currentDateTextElement = document.getElementById('currentDateText');
+  const currentTimeTextElement = document.getElementById('currentTimeText');
+
+  function getGreetingForCurrentHour(hour) {
+    // Simple time-of-day buckets. Adjust the hour ranges to taste.
+    if (hour < 5) return 'Burning the midnight oil?';
+    if (hour < 12) return 'Good morning!';
+    if (hour < 17) return 'Good afternoon!';
+    if (hour < 21) return 'Good evening!';
+    return 'Winding down for the night?';
+  }
+
+  function updateHeader() {
+    const now = new Date();
+
+    // Update greeting based on current hour.
+    greetingTextElement.textContent = getGreetingForCurrentHour(now.getHours());
+
+    // Update the readable date, e.g. "Monday, June 29, 2026".
+    currentDateTextElement.textContent = now.toLocaleDateString(undefined, {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+
+    // Update the live clock, e.g. "08:42:17".
+    currentTimeTextElement.textContent = now.toLocaleTimeString(undefined, {
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit'
+    });
+  }
+
+  // Run once immediately so the header isn't blank, then tick every second.
+  updateHeader();
+  setInterval(updateHeader, 1000);
+
+
+  /* ============================================================
+     SECTION 2: DAILY TASK LIST
+     Tasks are stored as an array of objects:
+       { id: <string>, text: <string>, completed: <boolean> }
+     under the localStorage key 'dashboard_tasks'.
+     ============================================================ */
+
+  const TASKS_STORAGE_KEY = 'dashboard_tasks';
+
+  const taskListElement = document.getElementById('taskListElement');
+  const newTaskInput = document.getElementById('newTaskInput');
+  const addTaskButton = document.getElementById('addTaskButton');
+
+  // Load existing tasks from localStorage, or start with an empty list.
+  function loadTasksFromStorage() {
+    const storedTasksJson = localStorage.getItem(TASKS_STORAGE_KEY);
+    if (!storedTasksJson) return [];
+    try {
+      return JSON.parse(storedTasksJson);
+    } catch (error) {
+      console.error('Could not parse saved tasks, starting fresh.', error);
+      return [];
+    }
+  }
+
+  // Save the current tasks array back to localStorage.
+  function saveTasksToStorage(tasksArray) {
+    localStorage.setItem(TASKS_STORAGE_KEY, JSON.stringify(tasksArray));
+  }
+
+  // In-memory copy of the tasks. This is the "source of truth" while the
+  // page is open; every change here is immediately persisted to storage.
+  let taskList = loadTasksFromStorage();
+
+  // Generates a reasonably unique ID for a new task (timestamp + random).
+  function generateTaskId() {
+    return Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+  }
+
+  // Adds a new task from the text input.
+  function addNewTask() {
+    const taskText = newTaskInput.value.trim();
+    if (taskText === '') return; // ignore empty submissions
+
+    taskList.push({
+      id: generateTaskId(),
+      text: taskText,
+      completed: false
+    });
+
+    saveTasksToStorage(taskList);
+    newTaskInput.value = '';
+    renderTasks();
+  }
+
+  // Toggles a task's completed state by ID.
+  function toggleTaskCompleted(taskId) {
+    const task = taskList.find(t => t.id === taskId);
+    if (!task) return;
+    task.completed = !task.completed;
+    saveTasksToStorage(taskList);
+    renderTasks();
+  }
+
+  // Deletes a task by ID.
+  function deleteTask(taskId) {
+    taskList = taskList.filter(t => t.id !== taskId);
+    saveTasksToStorage(taskList);
+    renderTasks();
+  }
+
+  // Replaces a task's text (used by the inline edit feature).
+  function updateTaskText(taskId, newText) {
+    const task = taskList.find(t => t.id === taskId);
+    if (!task) return;
+    const trimmed = newText.trim();
+    if (trimmed !== '') {
+      task.text = trimmed;
+    }
+    saveTasksToStorage(taskList);
+    renderTasks();
+  }
+
+  // Switches a task row into an editable text input.
+  function enterEditMode(taskId, taskTextSpan) {
+    const task = taskList.find(t => t.id === taskId);
+    if (!task) return;
+
+    const editInput = document.createElement('input');
+    editInput.type = 'text';
+    editInput.className = 'task-edit-input';
+    editInput.value = task.text;
+
+    taskTextSpan.replaceWith(editInput);
+    editInput.focus();
+    editInput.select();
+
+    // Save when the user presses Enter or clicks away from the field.
+    function commitEdit() {
+      updateTaskText(taskId, editInput.value);
+    }
+    editInput.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter') commitEdit();
+      if (event.key === 'Escape') renderTasks(); // cancel edit, redraw original
+    });
+    editInput.addEventListener('blur', commitEdit);
+  }
+
+  // Renders the full task list into the DOM based on the current taskList array.
+  // Completed tasks are sorted to the bottom; otherwise original order is kept.
+  function renderTasks() {
+    taskListElement.innerHTML = '';
+
+    if (taskList.length === 0) {
+      taskListElement.innerHTML = '<li class="empty-state">No tasks yet. Add one above to get started.</li>';
+      return;
+    }
+
+    // Sort a shallow copy: incomplete tasks first, completed tasks last.
+    const sortedTasks = [...taskList].sort((a, b) => {
+      return Number(a.completed) - Number(b.completed);
+    });
+
+    sortedTasks.forEach((task) => {
+      const listItem = document.createElement('li');
+      listItem.className = 'task-item' + (task.completed ? ' completed' : '');
+
+      // Checkbox
+      const checkbox = document.createElement('input');
+      checkbox.type = 'checkbox';
+      checkbox.checked = task.completed;
+      checkbox.addEventListener('change', () => toggleTaskCompleted(task.id));
+
+      // Task text (double-click to edit)
+      const taskTextSpan = document.createElement('span');
+      taskTextSpan.className = 'task-text';
+      taskTextSpan.textContent = task.text;
+      taskTextSpan.title = 'Double-click to edit';
+      taskTextSpan.addEventListener('dblclick', () => enterEditMode(task.id, taskTextSpan));
+
+      // Edit button (alternative to double-click, friendlier for new users)
+      const editButton = document.createElement('button');
+      editButton.className = 'task-action-btn';
+      editButton.textContent = '✏️';
+      editButton.title = 'Edit task';
+      editButton.addEventListener('click', () => enterEditMode(task.id, taskTextSpan));
+
+      // Delete button
+      const deleteButton = document.createElement('button');
+      deleteButton.className = 'task-action-btn delete-btn';
+      deleteButton.textContent = '🗑️';
+      deleteButton.title = 'Delete task';
+      deleteButton.addEventListener('click', () => deleteTask(task.id));
+
+      listItem.appendChild(checkbox);
+      listItem.appendChild(taskTextSpan);
+      listItem.appendChild(editButton);
+      listItem.appendChild(deleteButton);
+      taskListElement.appendChild(listItem);
+    });
+  }
+
+  // Wire up the "Add" button and Enter key on the input field.
+  addTaskButton.addEventListener('click', addNewTask);
+  newTaskInput.addEventListener('keydown', (event) => {
+    if (event.key === 'Enter') addNewTask();
+  });
+
+  // Initial render on page load.
+  renderTasks();
+
+
+  /* ============================================================
+     SECTION 3: DAILY JOURNAL
+     Journal entries are stored as an object keyed by date string,
+     e.g. { "2026-06-29": "today's notes...", "2026-06-30": "..." }
+     under the localStorage key 'dashboard_journal_entries'.
+     This means every day automatically gets a fresh, blank entry.
+     ============================================================ */
+
+  const JOURNAL_STORAGE_KEY = 'dashboard_journal_entries';
+
+  const journalDateText = document.getElementById('journalDateText');
+  const journalTextarea = document.getElementById('journalTextarea');
+  const journalSaveIndicator = document.getElementById('journalSaveIndicator');
+
+  // Returns today's date as a stable key, e.g. "2026-06-29".
+  function getTodayDateKey() {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }
+
+  function loadAllJournalEntries() {
+    const storedJson = localStorage.getItem(JOURNAL_STORAGE_KEY);
+    if (!storedJson) return {};
+    try {
+      return JSON.parse(storedJson);
+    } catch (error) {
+      console.error('Could not parse saved journal entries, starting fresh.', error);
+      return {};
+    }
+  }
+
+  function saveAllJournalEntries(entriesObject) {
+    localStorage.setItem(JOURNAL_STORAGE_KEY, JSON.stringify(entriesObject));
+  }
+
+  const todayDateKey = getTodayDateKey();
+  let journalEntries = loadAllJournalEntries();
+
+  // Show a friendly date above the journal and pre-fill today's entry, if any.
+  journalDateText.textContent = new Date().toLocaleDateString(undefined, {
+    weekday: 'long',
+    month: 'long',
+    day: 'numeric',
+    year: 'numeric'
+  });
+  journalTextarea.value = journalEntries[todayDateKey] || '';
+
+  // Debounce helper: waits until typing pauses before actually saving.
+  // This avoids hammering localStorage on every single keystroke.
+  let journalSaveTimeoutId = null;
+  function scheduleJournalSave() {
+    clearTimeout(journalSaveTimeoutId);
+    journalSaveTimeoutId = setTimeout(() => {
+      journalEntries[todayDateKey] = journalTextarea.value;
+      saveAllJournalEntries(journalEntries);
+      showJournalSavedIndicator();
+    }, 500); // 500ms pause in typing before we save
+  }
+
+  // Briefly flashes a "Saved ✓" message after a successful save.
+  let savedIndicatorTimeoutId = null;
+  function showJournalSavedIndicator() {
+    journalSaveIndicator.classList.add('visible');
+    clearTimeout(savedIndicatorTimeoutId);
+    savedIndicatorTimeoutId = setTimeout(() => {
+      journalSaveIndicator.classList.remove('visible');
+    }, 1500);
+  }
+
+  journalTextarea.addEventListener('input', scheduleJournalSave);
+
+
+  /* ============================================================
+     SECTION 4: WEATHER WIDGET (Open-Meteo)
+     ------------------------------------------------------------
+     IMPORTANT NOTE ABOUT file:// AND CORS:
+
+     Open-Meteo's API (https://api.open-meteo.com) sends the header
+     "Access-Control-Allow-Origin: *", which means it explicitly
+     allows requests from ANY origin, including pages opened
+     directly from disk via file://. In practice this means the
+     fetch() call below generally WORKS even when you double-click
+     this HTML file and open it straight from your file system.
+
+     However, two things can still stop it from working:
+       1. Your browser's Geolocation API (used to find your
+          coordinates) usually REFUSES to run on file:// pages in
+          some browsers/security settings, or the user may simply
+          decline the location permission prompt.
+       2. Corporate firewalls, ad blockers, or strict local
+          security settings can occasionally block fetch() calls
+          from file:// pages regardless of CORS headers.
+
+     To handle this gracefully, the code below:
+       - Tries to get your location via navigator.geolocation.
+       - Falls back to a fixed default location (Omaha, NE) if
+         geolocation fails or is denied.
+       - Catches any fetch errors and shows a clear placeholder
+         message instead of breaking the page.
+
+     If you want to hardcode your own city instead of relying on
+     geolocation, just change DEFAULT_LATITUDE / DEFAULT_LONGITUDE
+     below and remove the navigator.geolocation block.
+     ============================================================ */
+
+  const weatherTempText = document.getElementById('weatherTempText');
+  const weatherDetailText = document.getElementById('weatherDetailText');
+  const weatherLocationText = document.getElementById('weatherLocationText');
+  const weatherStatusText = document.getElementById('weatherStatusText');
+  const hourlyForecastStrip = document.getElementById('hourlyForecastStrip');
+  const dailyForecastRow = document.getElementById('dailyForecastRow');
+
+  // Fallback coordinates used if geolocation isn't available (Omaha, NE).
+  const DEFAULT_LATITUDE = 41.2565;
+  const DEFAULT_LONGITUDE = -95.9345;
+  const DEFAULT_LOCATION_LABEL = 'Omaha, NE (default)';
+
+  // Maps Open-Meteo's numeric "weather code" to a short human-readable label.
+  // (Open-Meteo uses the WMO weather code standard.)
+  function describeWeatherCode(code) {
+    const codeMap = {
+      0: 'Clear sky', 1: 'Mainly clear', 2: 'Partly cloudy', 3: 'Overcast',
+      45: 'Fog', 48: 'Freezing fog',
+      51: 'Light drizzle', 53: 'Drizzle', 55: 'Dense drizzle',
+      61: 'Light rain', 63: 'Rain', 65: 'Heavy rain',
+      71: 'Light snow', 73: 'Snow', 75: 'Heavy snow',
+      80: 'Rain showers', 81: 'Rain showers', 82: 'Violent rain showers',
+      95: 'Thunderstorm', 96: 'Thunderstorm with hail', 99: 'Thunderstorm with heavy hail'
+    };
+    return codeMap[code] || 'Weather conditions unavailable';
+  }
+
+  // Maps the same weather codes to a small emoji icon for the forecast tiles.
+  function getWeatherIcon(code) {
+    if (code === 0 || code === 1) return '☀️';
+    if (code === 2) return '⛅';
+    if (code === 3) return '☁️';
+    if (code === 45 || code === 48) return '🌫️';
+    if (code >= 51 && code <= 65) return '🌧️';
+    if (code >= 71 && code <= 75) return '❄️';
+    if (code >= 80 && code <= 82) return '🌦️';
+    if (code >= 95) return '⛈️';
+    return '🌡️';
+  }
+
+  // Renders the hourly strip for the remaining hours of today.
+  // `hourlyData` is the raw `hourly` object from Open-Meteo's response.
+  function renderHourlyForecast(hourlyData) {
+    hourlyForecastStrip.innerHTML = '';
+
+    const now = new Date();
+    let tilesRendered = 0;
+
+    hourlyData.time.forEach((isoTimeString, index) => {
+      const hourDate = new Date(isoTimeString);
+
+      // Only show hours that are later today (skip past hours and other days).
+      const isLaterToday =
+        hourDate.toDateString() === now.toDateString() && hourDate.getTime() >= now.getTime();
+      if (!isLaterToday) return;
+
+      const tile = document.createElement('div');
+      tile.className = 'hourly-forecast-tile';
+      tile.innerHTML = `
+        <div class="hour-label">${hourDate.toLocaleTimeString(undefined, { hour: 'numeric' })}</div>
+        <div class="hour-icon">${getWeatherIcon(hourlyData.weathercode[index])}</div>
+        <div class="hour-temp">${Math.round(hourlyData.temperature_2m[index])}°</div>
+      `;
+      hourlyForecastStrip.appendChild(tile);
+      tilesRendered++;
+    });
+
+    if (tilesRendered === 0) {
+      hourlyForecastStrip.innerHTML = '<div class="weather-detail">No more hours left today.</div>';
+    }
+  }
+
+  // Renders the 6-day forecast row, skipping today (index 0) since today
+  // is already covered by the current conditions + hourly strip above.
+  // `dailyData` is the raw `daily` object from Open-Meteo's response.
+  function renderDailyForecast(dailyData) {
+    dailyForecastRow.innerHTML = '';
+
+    // dailyData.time[0] is today, so we start at index 1 and take 6 days.
+    const upcomingDayIndexes = dailyData.time.slice(1, 7).map((_, i) => i + 1);
+
+    upcomingDayIndexes.forEach((index) => {
+      const dayDate = new Date(dailyData.time[index] + 'T00:00:00');
+
+      const tile = document.createElement('div');
+      tile.className = 'daily-forecast-tile';
+      tile.innerHTML = `
+        <div class="day-label">${dayDate.toLocaleDateString(undefined, { weekday: 'short' })}</div>
+        <div class="day-icon">${getWeatherIcon(dailyData.weathercode[index])}</div>
+        <div class="day-high">${Math.round(dailyData.temperature_2m_max[index])}°</div>
+        <div class="day-low">${Math.round(dailyData.temperature_2m_min[index])}°</div>
+      `;
+      dailyForecastRow.appendChild(tile);
+    });
+  }
+
+  // Fetches current weather, the rest-of-day hourly forecast, and the
+  // 6-day daily forecast for the given coordinates, all in one Open-Meteo
+  // call (forecast_days=7 covers today + the next 6 days).
+  async function fetchWeatherForCoordinates(latitude, longitude, locationLabel) {
+    const apiUrl =
+      `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}` +
+      `&current_weather=true` +
+      `&hourly=temperature_2m,weathercode` +
+      `&daily=temperature_2m_max,temperature_2m_min,weathercode` +
+      `&temperature_unit=fahrenheit` +
+      `&timezone=auto` +
+      `&forecast_days=7`;
+
+    try {
+      const response = await fetch(apiUrl);
+      if (!response.ok) throw new Error(`Open-Meteo responded with status ${response.status}`);
+
+      const weatherData = await response.json();
+      const currentWeather = weatherData.current_weather;
+
+      weatherTempText.textContent = `${Math.round(currentWeather.temperature)}°F`;
+      weatherDetailText.textContent = describeWeatherCode(currentWeather.weathercode);
+      weatherLocationText.textContent = locationLabel;
+      weatherStatusText.textContent = '';
+
+      renderHourlyForecast(weatherData.hourly);
+      renderDailyForecast(weatherData.daily);
+    } catch (error) {
+      // If the fetch fails (offline, blocked, CORS edge case, etc.),
+      // show a clear placeholder instead of leaving stale "Fetching..." text.
+      console.error('Weather fetch failed:', error);
+      weatherTempText.textContent = '--°';
+      weatherDetailText.textContent = 'Weather unavailable';
+      weatherLocationText.textContent = locationLabel;
+      weatherStatusText.textContent =
+        'Could not load live weather (no internet, or the request was blocked). ' +
+        'This is a placeholder — once a connection is available it will populate automatically on next load.';
+      hourlyForecastStrip.innerHTML = '<div class="weather-detail">Hourly forecast unavailable.</div>';
+      dailyForecastRow.innerHTML = '<div class="weather-detail">Daily forecast unavailable.</div>';
+    }
+  }
+
+  // Attempts to use the browser's geolocation; falls back to a default city.
+  function initializeWeatherWidget() {
+    if (!navigator.geolocation) {
+      // Geolocation API not supported at all — use the default location.
+      fetchWeatherForCoordinates(DEFAULT_LATITUDE, DEFAULT_LONGITUDE, DEFAULT_LOCATION_LABEL);
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const { latitude, longitude } = position.coords;
+        fetchWeatherForCoordinates(latitude, longitude, 'Your location');
+      },
+      (error) => {
+        // User denied permission, or geolocation failed (common on file://).
+        console.warn('Geolocation unavailable, falling back to default location.', error);
+        fetchWeatherForCoordinates(DEFAULT_LATITUDE, DEFAULT_LONGITUDE, DEFAULT_LOCATION_LABEL);
+      },
+      { timeout: 8000 }
+    );
+  }
+
+  initializeWeatherWidget();
+
+
+  /* ============================================================
+     SECTION 5: STOCK TICKER WIDGET (Yahoo Finance)
+     ------------------------------------------------------------
+     IMPORTANT NOTE ABOUT file:// AND CORS (read this if prices
+     don't load):
+
+     Yahoo Finance's public chart endpoint
+     (query1.finance.yahoo.com) does NOT send an
+     "Access-Control-Allow-Origin" header. That means a direct
+     fetch() to it from a browser — including a page opened via
+     file:// — is blocked by CORS every time, regardless of any
+     network/firewall settings. This is a hard browser security
+     restriction, not a bug in this page, and it can't be worked
+     around by changing fetch() options alone.
+
+     THE FIX USED HERE:
+     This widget routes the request through a free public CORS
+     proxy (api.allorigins.win). The proxy fetches the Yahoo URL
+     on its own server (where CORS doesn't apply) and hands the
+     response back to the browser WITH the CORS header added, so
+     our fetch() call succeeds. This is a normal, widely used
+     pattern for exactly this situation.
+
+     TRADE-OFFS TO BE AWARE OF:
+       1. allorigins.win is a free, third-party service with no
+          uptime guarantee. If it's down or rate-limited, the
+          tile will show "Data unavailable" instead of breaking
+          the page.
+       2. If you'd rather not route through a third-party proxy,
+          the most reliable long-term fix is to run a tiny local
+          server (even a one-line Python "http.server" or a
+          lightweight Node/Express proxy) that fetches Yahoo data
+          and serves it to this page — but that goes beyond the
+          "double-click and open, no server" requirement, so it's
+          left as an optional upgrade rather than the default here.
+       3. Want to swap proxies or providers? Only the CORS_PROXY_
+          PREFIX constant and fetchStockQuote() below need to
+          change — everything else (rendering, formatting) stays
+          the same.
+
+     WHY "MOST RECENT VALUE" WORKS AUTOMATICALLY:
+     Yahoo's response includes regularMarketPrice (last regular
+     session price) plus, when applicable, postMarketPrice or
+     preMarketPrice (the latest after-hours / pre-market trade).
+     getMostRecentPrice() below picks whichever of those is most
+     current based on the reported "marketState", so the tile
+     always shows the freshest available price along with a small
+     tag noting which session it came from.
+     ============================================================ */
+
+  const stockGridElement = document.getElementById('stockGridElement');
+
+  // Free CORS proxy used to reach Yahoo Finance from file://. See the
+  // note above for why this is necessary and what its trade-offs are.
+  const CORS_PROXY_PREFIX = 'https://api.allorigins.win/raw?url=';
+
+  // The three tickers to highlight. "NASDAQ" displays the Nasdaq
+  // Composite index, which Yahoo identifies with the symbol ^IXIC.
+  // Want to track different symbols? Just edit this array.
+  const TRACKED_STOCKS = [
+    { symbol: '^IXIC', displayName: 'NASDAQ', subLabel: 'Composite Index' },
+    { symbol: 'AAPL', displayName: 'AAPL', subLabel: 'Apple Inc.' },
+    { symbol: 'FISV', displayName: 'FISV', subLabel: 'Fiserv, Inc.' }
+  ];
+
+  // Given a Yahoo "quote meta" object, returns the most recent price
+  // and a label describing which trading session it's from.
+  function getMostRecentPrice(quoteMeta) {
+    const marketState = quoteMeta.marketState; // e.g. "PRE", "REGULAR", "POST", "CLOSED"
+
+    if (marketState === 'POST' && typeof quoteMeta.postMarketPrice === 'number') {
+      return { price: quoteMeta.postMarketPrice, sessionLabel: 'After-hours' };
+    }
+    if (marketState === 'PRE' && typeof quoteMeta.preMarketPrice === 'number') {
+      return { price: quoteMeta.preMarketPrice, sessionLabel: 'Pre-market' };
+    }
+    // Default: regular session price (also covers "CLOSED", where the
+    // last regular-session price is the most recent value available).
+    return { price: quoteMeta.regularMarketPrice, sessionLabel: 'Regular session' };
+  }
+
+  // Fetches a single quote from Yahoo Finance's chart endpoint, routed
+  // through the CORS proxy described above so it works from file://.
+  async function fetchStockQuote(symbol) {
+    const yahooUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}`;
+    const proxiedUrl = CORS_PROXY_PREFIX + encodeURIComponent(yahooUrl);
+
+    const response = await fetch(proxiedUrl);
+    if (!response.ok) throw new Error(`Stock data request failed with status ${response.status}`);
+
+    const responseData = await response.json();
+    const quoteMeta = responseData?.chart?.result?.[0]?.meta;
+    if (!quoteMeta) throw new Error('Unexpected response shape from Yahoo Finance.');
+
+    const { price, sessionLabel } = getMostRecentPrice(quoteMeta);
+    const previousClose = quoteMeta.previousClose ?? quoteMeta.chartPreviousClose;
+    const changeAmount = price - previousClose;
+    const changePercent = (changeAmount / previousClose) * 100;
+
+    return { price, sessionLabel, changeAmount, changePercent };
+  }
+
+  // Builds one stock tile's DOM, in either a loading, loaded, or error state.
+  function buildStockTile(stockConfig) {
+    const tile = document.createElement('div');
+    tile.className = 'stock-tile';
+    tile.id = `stockTile_${stockConfig.symbol}`;
+    tile.innerHTML = `
+      <div class="stock-symbol">${stockConfig.displayName}</div>
+      <div class="stock-name">${stockConfig.subLabel}</div>
+      <div class="stock-price">--</div>
+      <div class="stock-change">Loading...</div>
+    `;
+    return tile;
+  }
+
+  // Updates an already-rendered tile with live quote data (or an error state).
+  function updateStockTile(stockConfig, quoteResult, errorOccurred) {
+    const tile = document.getElementById(`stockTile_${stockConfig.symbol}`);
+    if (!tile) return;
+
+    const priceElement = tile.querySelector('.stock-price');
+    const changeElement = tile.querySelector('.stock-change');
+
+    if (errorOccurred) {
+      priceElement.textContent = '--';
+      changeElement.textContent = 'Data unavailable';
+      changeElement.className = 'stock-change';
+      return;
+    }
+
+    const isPositive = quoteResult.changeAmount >= 0;
+    const sign = isPositive ? '+' : '';
+
+    priceElement.textContent = quoteResult.price.toFixed(2);
+    changeElement.textContent =
+      `${sign}${quoteResult.changeAmount.toFixed(2)} (${sign}${quoteResult.changePercent.toFixed(2)}%)`;
+    changeElement.className = 'stock-change ' + (isPositive ? 'positive' : 'negative');
+
+    // Add a small tag noting whether this is a pre-market / after-hours price.
+    const existingTag = tile.querySelector('.stock-session-tag');
+    if (existingTag) existingTag.remove();
+    const sessionTag = document.createElement('div');
+    sessionTag.className = 'stock-session-tag';
+    sessionTag.textContent = quoteResult.sessionLabel;
+    tile.appendChild(sessionTag);
+  }
+
+  // Renders all stock tiles, then fetches each quote independently so a
+  // failure on one ticker doesn't prevent the others from loading.
+  function renderStockTiles() {
+    stockGridElement.innerHTML = '';
+    TRACKED_STOCKS.forEach((stockConfig) => {
+      stockGridElement.appendChild(buildStockTile(stockConfig));
+    });
+
+    TRACKED_STOCKS.forEach(async (stockConfig) => {
+      try {
+        const quoteResult = await fetchStockQuote(stockConfig.symbol);
+        updateStockTile(stockConfig, quoteResult, false);
+      } catch (error) {
+        console.error(`Could not load quote for ${stockConfig.symbol}:`, error);
+        updateStockTile(stockConfig, null, true);
+      }
+    });
+  }
+
+  renderStockTiles();
+
+  // Refresh prices periodically so the dashboard stays current while
+  // it's left open in the background (every 5 minutes; adjust to taste).
+  setInterval(renderStockTiles, 5 * 60 * 1000);
+
+
+  /* ============================================================
+     SECTION 6: MOOD / ENERGY LOG
+     ------------------------------------------------------------
+     Stores one numeric value per day in an object keyed by date,
+     e.g. { "2026-06-29": 4, "2026-06-28": 2 }
+     under the localStorage key 'dashboard_mood_log'.
+
+     MOOD_LEVELS defines the clickable options shown to the user.
+     Want different options (e.g. just 3, or different emoji)?
+     Just edit this array — everything else adapts automatically.
+     ============================================================ */
+
+  const MOOD_STORAGE_KEY = 'dashboard_mood_log';
+
+  const MOOD_LEVELS = [
+    { value: 1, emoji: '🪫', label: 'Drained' },
+    { value: 2, emoji: '😕', label: 'Low' },
+    { value: 3, emoji: '😐', label: 'Okay' },
+    { value: 4, emoji: '🙂', label: 'Good' },
+    { value: 5, emoji: '⚡', label: 'Energized' }
+  ];
+
+  const moodOptionsRow = document.getElementById('moodOptionsRow');
+  const moodChartWrapper = document.getElementById('moodChartWrapper');
+
+  function loadMoodLogFromStorage() {
+    const storedJson = localStorage.getItem(MOOD_STORAGE_KEY);
+    if (!storedJson) return {};
+    try {
+      return JSON.parse(storedJson);
+    } catch (error) {
+      console.error('Could not parse saved mood log, starting fresh.', error);
+      return {};
+    }
+  }
+
+  function saveMoodLogToStorage(moodLogObject) {
+    localStorage.setItem(MOOD_STORAGE_KEY, JSON.stringify(moodLogObject));
+  }
+
+  let moodLog = loadMoodLogFromStorage();
+
+  // Records (or overwrites) today's mood value, then re-renders both
+  // the option buttons (to show the new selection) and the chart.
+  function logTodaysMood(value) {
+    moodLog[todayDateKey] = value;
+    saveMoodLogToStorage(moodLog);
+    renderMoodOptions();
+    renderMoodChart();
+  }
+
+  // Draws the row of clickable mood options, highlighting today's
+  // logged value (if any) as "selected".
+  function renderMoodOptions() {
+    moodOptionsRow.innerHTML = '';
+    const todaysValue = moodLog[todayDateKey];
+
+    MOOD_LEVELS.forEach((level) => {
+      const optionButton = document.createElement('button');
+      optionButton.className = 'mood-option-btn' + (todaysValue === level.value ? ' selected' : '');
+      optionButton.title = level.label;
+      optionButton.innerHTML = `<span class="mood-emoji">${level.emoji}</span><span>${level.label}</span>`;
+      optionButton.addEventListener('click', () => logTodaysMood(level.value));
+      moodOptionsRow.appendChild(optionButton);
+    });
+  }
+
+  // Returns an array of the last 7 date keys (oldest first, today last),
+  // e.g. ["2026-06-23", "2026-06-24", ..., "2026-06-29"].
+  function getLastSevenDateKeys() {
+    const dateKeys = [];
+    for (let dayOffset = 6; dayOffset >= 0; dayOffset--) {
+      const date = new Date();
+      date.setDate(date.getDate() - dayOffset);
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      dateKeys.push(`${year}-${month}-${day}`);
+    }
+    return dateKeys;
+  }
+
+  // Draws a simple 7-day bar chart from the mood log. Each bar's height
+  // is scaled relative to the highest possible mood value, so the chart
+  // works correctly no matter how many MOOD_LEVELS you define above.
+  function renderMoodChart() {
+    moodChartWrapper.innerHTML = '';
+
+    const maxMoodValue = Math.max(...MOOD_LEVELS.map(l => l.value));
+    const lastSevenDays = getLastSevenDateKeys();
+
+    lastSevenDays.forEach((dateKey) => {
+      const moodValue = moodLog[dateKey]; // undefined if nothing logged that day
+      const barHeightPercent = moodValue ? (moodValue / maxMoodValue) * 100 : 4;
+
+      const dayColumn = document.createElement('div');
+      dayColumn.className = 'mood-chart-day';
+
+      const bar = document.createElement('div');
+      bar.className = 'mood-chart-bar' + (moodValue ? ' logged' : '');
+      bar.style.height = `${barHeightPercent}%`;
+      bar.title = moodValue
+        ? (MOOD_LEVELS.find(l => l.value === moodValue)?.label || '')
+        : 'No entry';
+
+      const isToday = dateKey === todayDateKey;
+      const label = document.createElement('div');
+      label.className = 'mood-chart-label' + (isToday ? ' is-today' : '');
+      // Short weekday label, e.g. "Mon".
+      label.textContent = new Date(dateKey + 'T00:00:00').toLocaleDateString(undefined, { weekday: 'short' });
+
+      dayColumn.appendChild(bar);
+      dayColumn.appendChild(label);
+      moodChartWrapper.appendChild(dayColumn);
+    });
+  }
+
+  // Initial render on page load.
+  renderMoodOptions();
+  renderMoodChart();
+
+
+  /* ============================================================
+     SECTION 7: POMODORO / FOCUS TIMER
+     ------------------------------------------------------------
+     Pure client-side timer — no network calls, so this widget
+     can never fail or show a "data unavailable" state. Tracks
+     completed focus sessions per day in localStorage so you can
+     see how many you finished "today" even after a page refresh.
+     ============================================================ */
+
+  const FOCUS_DURATION_SECONDS = 25 * 60; // 25 minutes
+  const BREAK_DURATION_SECONDS = 5 * 60;  // 5 minutes
+  const POMODORO_SESSIONS_STORAGE_KEY = 'dashboard_pomodoro_sessions';
+
+  const pomodoroTimeText = document.getElementById('pomodoroTimeText');
+  const pomodoroModeLabel = document.getElementById('pomodoroModeLabel');
+  const pomodoroStartPauseButton = document.getElementById('pomodoroStartPauseButton');
+  const pomodoroResetButton = document.getElementById('pomodoroResetButton');
+  const pomodoroSessionCountText = document.getElementById('pomodoroSessionCountText');
+
+  // Mutable timer state, kept in memory while the page is open.
+  let secondsRemaining = FOCUS_DURATION_SECONDS;
+  let isOnBreak = false;
+  let isTimerRunning = false;
+  let timerIntervalId = null;
+
+  // Loads { "2026-06-29": 3, ... } style session counts from storage.
+  function loadPomodoroSessionLog() {
+    const storedJson = localStorage.getItem(POMODORO_SESSIONS_STORAGE_KEY);
+    if (!storedJson) return {};
+    try {
+      return JSON.parse(storedJson);
+    } catch (error) {
+      console.error('Could not parse saved pomodoro sessions, starting fresh.', error);
+      return {};
+    }
+  }
+
+  function savePomodoroSessionLog(sessionLogObject) {
+    localStorage.setItem(POMODORO_SESSIONS_STORAGE_KEY, JSON.stringify(sessionLogObject));
+  }
+
+  let pomodoroSessionLog = loadPomodoroSessionLog();
+
+  // Displays today's completed-session count from the log.
+  function renderPomodoroSessionCount() {
+    pomodoroSessionCountText.textContent = pomodoroSessionLog[todayDateKey] || 0;
+  }
+
+  // Formats whole seconds as "MM:SS" for the countdown display.
+  function formatSecondsAsClock(totalSeconds) {
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+  }
+
+  function updatePomodoroDisplay() {
+    pomodoroTimeText.textContent = formatSecondsAsClock(secondsRemaining);
+    pomodoroModeLabel.textContent = isOnBreak ? 'Break time' : 'Focus session';
+  }
+
+  // Called automatically when the countdown hits zero. Switches between
+  // focus and break modes, and logs a completed session when a focus
+  // block (not a break) finishes.
+  function handleTimerComplete() {
+    clearInterval(timerIntervalId);
+    isTimerRunning = false;
+    pomodoroStartPauseButton.textContent = 'Start';
+
+    if (!isOnBreak) {
+      // A focus session just finished — log it under today's date.
+      pomodoroSessionLog[todayDateKey] = (pomodoroSessionLog[todayDateKey] || 0) + 1;
+      savePomodoroSessionLog(pomodoroSessionLog);
+      renderPomodoroSessionCount();
+    }
+
+    // Flip mode and reset the clock for the next phase.
+    isOnBreak = !isOnBreak;
+    secondsRemaining = isOnBreak ? BREAK_DURATION_SECONDS : FOCUS_DURATION_SECONDS;
+    updatePomodoroDisplay();
+  }
+
+  function tickPomodoroTimer() {
+    secondsRemaining--;
+    if (secondsRemaining <= 0) {
+      handleTimerComplete();
+      return;
+    }
+    updatePomodoroDisplay();
+  }
+
+  function startOrPauseTimer() {
+    if (isTimerRunning) {
+      // Pause.
+      clearInterval(timerIntervalId);
+      isTimerRunning = false;
+      pomodoroStartPauseButton.textContent = 'Start';
+    } else {
+      // Start (or resume).
+      isTimerRunning = true;
+      pomodoroStartPauseButton.textContent = 'Pause';
+      timerIntervalId = setInterval(tickPomodoroTimer, 1000);
+    }
+  }
+
+  function resetTimer() {
+    clearInterval(timerIntervalId);
+    isTimerRunning = false;
+    isOnBreak = false;
+    secondsRemaining = FOCUS_DURATION_SECONDS;
+    pomodoroStartPauseButton.textContent = 'Start';
+    updatePomodoroDisplay();
+  }
+
+  pomodoroStartPauseButton.addEventListener('click', startOrPauseTimer);
+  pomodoroResetButton.addEventListener('click', resetTimer);
+
+  // Initial render on page load.
+  updatePomodoroDisplay();
+  renderPomodoroSessionCount();
+
+
+  /* ============================================================
+     SECTION 8: DAILY QUOTE WIDGET
+     ------------------------------------------------------------
+     A small, fixed list of short motivational quotes from
+     well-known athletes, baked directly into this file — no
+     network call, so this widget can never fail to load.
+
+     "Changes every day" is implemented by picking the quote
+     index from today's day-of-year number (modulo the list
+     length), so the SAME quote shows all day for everyone, and
+     it automatically rotates to a new one tomorrow without any
+     extra logic. Want more variety? Just add more entries to
+     ATHLETE_QUOTES below — nothing else needs to change.
+     ============================================================ */
+
+  const ATHLETE_QUOTES = [
+    { quote: 'I\u2019ve missed more than 9,000 shots in my career. I\u2019ve lost almost 300 games. I\u2019ve failed over and over again. And that is why I succeed.', athlete: 'Michael Jordan' },
+    { quote: 'Hard work beats talent when talent doesn\u2019t work hard.', athlete: 'Kevin Durant' },
+    { quote: 'It\u2019s not whether you get knocked down; it\u2019s whether you get up.', athlete: 'Vince Lombardi' },
+    { quote: 'I hated every minute of training, but I said, don\u2019t quit. Suffer now and live the rest of your life as a champion.', athlete: 'Muhammad Ali' },
+    { quote: 'You miss 100% of the shots you don\u2019t take.', athlete: 'Wayne Gretzky' },
+    { quote: 'The only way to prove you are a good sport is to lose.', athlete: 'Ernie Banks' },
+    { quote: 'Champions keep playing until they get it right.', athlete: 'Billie Jean King' },
+    { quote: 'I can accept failure, everyone fails at something. But I can\u2019t accept not trying.', athlete: 'Michael Jordan' },
+    { quote: 'Set your goals high, and don\u2019t stop till you get there.', athlete: 'Bo Jackson' },
+    { quote: 'The difference between the impossible and the possible lies in a person\u2019s determination.', athlete: 'Tommy Lasorda' },
+    { quote: 'You have to expect things of yourself before you can do them.', athlete: 'Michael Jordan' },
+    { quote: 'Obstacles don\u2019t have to stop you. If you run into a wall, don\u2019t turn around and give up. Figure out how to climb it, go through it, or work around it.', athlete: 'Michael Jordan' }
+  ];
+
+  const quoteTextElement = document.getElementById('quoteTextElement');
+  const quoteAttributionElement = document.getElementById('quoteAttributionElement');
+
+  // Returns the day-of-year (1-366) for a given date, used to pick a
+  // stable index into ATHLETE_QUOTES that rotates once per calendar day.
+  function getDayOfYear(date) {
+    const startOfYear = new Date(date.getFullYear(), 0, 1);
+    const millisecondsPerDay = 24 * 60 * 60 * 1000;
+    return Math.floor((date - startOfYear) / millisecondsPerDay) + 1;
+  }
+
+  function renderDailyQuote() {
+    const dayOfYear = getDayOfYear(new Date());
+    const todaysQuote = ATHLETE_QUOTES[dayOfYear % ATHLETE_QUOTES.length];
+
+    quoteTextElement.textContent = `\u201C${todaysQuote.quote}\u201D`;
+    quoteAttributionElement.textContent = `\u2014 ${todaysQuote.athlete}`;
+  }
+
+  renderDailyQuote();
+
+
+  /* ============================================================
+     SECTION 9: EXPORT DATA BUTTON
+     Gathers every localStorage key used by this dashboard and
+     downloads it as a single timestamped JSON file, so the user
+     can back up or move their data to another machine.
+     ============================================================ */
+
+  const exportDataButton = document.getElementById('exportDataButton');
+
+  function exportAllDashboardData() {
+    // List every localStorage key this dashboard uses. If you add new
+    // widgets with their own storage keys later, add them here too.
+    const backupPayload = {
+      exportedAt: new Date().toISOString(),
+      tasks: loadTasksFromStorage(),
+      journalEntries: loadAllJournalEntries(),
+      moodLog: loadMoodLogFromStorage(),
+      pomodoroSessions: loadPomodoroSessionLog()
+    };
+
+    const jsonString = JSON.stringify(backupPayload, null, 2);
+    const blob = new Blob([jsonString], { type: 'application/json' });
+    const downloadUrl = URL.createObjectURL(blob);
+
+    // Build a temporary <a> tag to trigger the browser's download dialog.
+    const downloadLink = document.createElement('a');
+    downloadLink.href = downloadUrl;
+    downloadLink.download = `dashboard-backup-${getTodayDateKey()}.json`;
+    document.body.appendChild(downloadLink);
+    downloadLink.click();
+    document.body.removeChild(downloadLink);
+
+    // Release the temporary object URL once the download has started.
+    URL.revokeObjectURL(downloadUrl);
+  }
+
+  exportDataButton.addEventListener('click', exportAllDashboardData);
+
+</script>
+
+</body>
+</html>
